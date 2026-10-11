@@ -20,3 +20,6 @@ Desktop.ini
 *.swp
 *.bak
 *~
+
+# Production DB dump (contains real user emails/PII) — never push
+app/views/teacher/u788443931_datamex.sql
