@@ -1,0 +1,144 @@
+/* ============================================================
+   EduPortal - Design System v2
+   Principal UI/UX: Deep Academic Blue + Emerald, Inter, Glassmorphism
+   Non-destructive: preserves all existing class hooks (.card, .stat-card, etc.)
+   ============================================================ */
+
+:root {
+  --academic-900: #4A0E1B;
+  --academic-800: #641525;
+  --academic-700: #92263D;
+  --brand-emerald: #059669;
+  --brand-crimson: #DC2626;
+  --surface-base: #FAF7F8;
+  --surface-card: #FFFFFF;
+  --surface-muted: #F3EDEF;
+  --text-900: #2B1219;
+  --text-500: #7A646B;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --shadow-soft: 0 4px 20px rgba(74,14,27,0.07);
+  --shadow-medium: 0 8px 30px rgba(74,14,27,0.10);
+}
+
+* { scrollbar-width: thin; scrollbar-color: #CBD5E1 #F8FAFC; }
+
+body {
+  background: var(--surface-base);
+  color: var(--text-900);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,.font-display { font-family: "Plus Jakarta Sans", "Inter", sans-serif; letter-spacing: -0.015em; }
+
+/* Brand - preserve .navbar-edu hook for legacy pages, but new sidebar uses Tailwind */
+.navbar-edu {
+  background: var(--academic-900);
+  backdrop-filter: blur(12px);
+}
+.navbar-edu .navbar-brand { font-weight: 700; letter-spacing: 0.3px; font-family: "Plus Jakarta Sans", sans-serif; }
+.navbar-edu .nav-link,
+.navbar-edu .btn-show-logout { color: rgba(255,255,255,0.88); font-weight: 500; }
+.navbar-edu .nav-link:hover,
+.navbar-edu .nav-link.active { color: #fff; }
+
+/* Cards - rounded-xl, soft shadows, subtle borders (non-destructive upgrade) */
+.card {
+  background: var(--surface-card);
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-soft);
+}
+.stat-card { transition: transform .18s ease, box-shadow .18s ease; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-medium); }
+.stat-card h2 { font-weight: 700; margin-bottom: 0.15rem; font-family: "Plus Jakarta Sans", sans-serif; }
+.stat-card .text-muted { font-size: 0.85rem; color: var(--text-500); }
+.stat-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.35rem;
+}
+
+/* Tables - clean hover, padded, status pills */
+.table { --bs-table-bg: transparent; }
+.table td, .table th { vertical-align: middle; padding: 12px 14px; }
+.table thead th { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #64748B; font-weight: 600; border-bottom: 1px solid #E2E8F0; }
+.table tbody tr { transition: background .15s; }
+.table tbody tr:hover { background: #F8FAFC; }
+
+/* Status pills - preserve existing badge hooks */
+.badge { font-weight: 600; letter-spacing: 0.02em; }
+
+/* Alerts - toast style (JS will auto-dismiss success) */
+.alert {
+  border-radius: var(--radius-xl);
+  border: 1px solid #E2E8F0;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(8px);
+}
+.alert-success { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.18); color: #065F46; }
+.alert-danger  { background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.16); color: #7F1D1D; }
+.alert-warning { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.18); color: #78350F; }
+
+/* Forms - drag-and-drop dropzones (wrapper only, input[name] untouched) */
+.form-control, .form-select {
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  padding: 11px 14px;
+  font-size: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--academic-700);
+  box-shadow: 0 0 0 3px rgba(146,38,61,0.12);
+}
+/* Visible keyboard focus for buttons, links, nav, and toggles (a11y). */
+.btn:focus-visible, a:focus-visible, .nav-link:focus-visible,
+.page-link:focus-visible, .theme-toggle:focus-visible, .notif-toggle:focus-visible,
+button:focus-visible, [role="button"]:focus-visible {
+  outline: 3px solid rgba(146,38,61,.45);
+  outline-offset: 2px;
+}
+.dropzone {
+  border: 1.5px dashed #CBD5E1;
+  border-radius: 16px;
+  background: #F8FAFC;
+  transition: border-color .15s, background .15s;
+}
+.dropzone:hover { border-color: #94A3B8; background: #F1F5F9; }
+.dropzone.dragover { border-color: var(--brand-emerald); background: rgba(5,150,105,0.06); }
+
+/* Auth pages - glassmorphism hero */
+.auth-hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(900px 500px at 10% -10%, rgba(146,38,61,0.10), transparent 60%),
+    radial-gradient(700px 400px at 110% 110%, rgba(5,150,105,0.08), transparent 60%),
+    var(--surface-base);
+}
+.auth-card { width: 100%; max-width: 480px; }
+.auth-logo { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; color: var(--academic-900); font-size: 1.6rem; }
+.auth-card .card { backdrop-filter: blur(12px); background: rgba(255,255,255,0.92); }
+
+/* Footer */
+.app-footer { color: var(--text-500); font-size: 0.875rem; }
+
+/* Responsive - 48px touch targets */
+@media (max-width: 576px) {
+  .stat-card h2 { font-size: 1.35rem; }
+  main.container { padding-left: 12px; padding-right: 12px; }
+  .btn, .form-control, .nav-link { min-height: 44px; }
+}
+@media (max-width: 1024px) {
+  .table-responsive { border-radius: 12px; }
+}
+
+/* Navigation active highlight (sidebar uses is_active_path() for server-side active class) */
+.nav-active { background: linear-gradient(135deg, #4A0E1B, #92263D); color: #fff; }
+.nav-active i { color: #fff !important; }
+
+/* Glassmorphism helpers */
+.glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); }
+.glass-dark { background: rgba(15,23,42,0.82); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }

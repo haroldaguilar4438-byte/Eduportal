@@ -1,0 +1,86 @@
+/* EduPortal mobile-only layer — desktop (>1023px) untouched.
+   Loaded after app.css. All rules scoped to small screens so
+   large/resizable screens keep the exact desktop UI. */
+.desktop-only { display: none !important; }
+.mobile-only { display: block !important; }
+@media (min-width: 1024px) {
+  .desktop-only { display: block !important; }
+  table.desktop-only { display: table !important; }
+  .mobile-only { display: none !important; }
+}
+@media (max-width: 1023.98px) {
+  :root { --m-nav-h: 64px; --m-tab-h: 68px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 15px; line-height: 1.55; overscroll-behavior-y: contain; }
+  /* Stack shell vertically: top bar on top, content full-width below.
+     (Mobile bar lives inside the desktop flex row; without this it
+     squeezes the main column into a thin strip.) */
+  .app-shell { flex-direction: column !important; }
+  .app-shell > aside#desktopSidebar { display: none !important; }
+  .app-shell > div.flex-1 { width: 100% !important; min-width: 0 !important; }
+  main { padding-left: 12px !important; padding-right: 12px !important; padding-bottom: calc(var(--m-tab-h) + 28px) !important; }
+  main > div, main .max-w-7xl { max-width: 100% !important; min-width: 0 !important; }
+  h1.h4 { font-size: 1.25rem !important; line-height: 1.3; }
+  h2.h6 { font-size: 1rem !important; }
+  /* Touch targets */
+  .btn, .form-control, .form-select, .nav-link, .page-link { min-height: 48px; }
+  .btn-sm { min-height: 44px; font-size: .85rem; }
+  .btn { border-radius: 12px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .btn:active { transform: scale(.97); }
+  input, select, textarea { font-size: 16px !important; } /* stops iOS zoom */
+  /* Cards stack, no hover lift on touch */
+  .card { border-radius: 16px !important; box-shadow: 0 2px 12px rgba(15,23,42,.06) !important; }
+  .card:hover, .program-card:hover { transform: none !important; }
+  /* Tables -> smooth horizontal snap scroll, sticky first col */
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; border-radius: 14px; margin: 0 -12px; padding: 0 12px; }
+  .table { min-width: 560px; }
+  .table td, .table th { padding: 10px 12px; font-size: .85rem; white-space: nowrap; }
+  /* Grids -> single column */
+  .row.g-3 > [class*="col-"] { margin-bottom: 2px; }
+  /* Filters collapse */
+  .m-filter-toggle { width: 100%; }
+  /* Drawer smoothing (JS toggles .open; current shell toggles .is-open on
+     .edu-drawer-shell — support both so the drawer can never stick hidden). */
+  #mobileDrawer { visibility: hidden; transition: visibility 0s .35s; }
+  #mobileDrawer.open, #mobileDrawer.is-open { visibility: visible; transition-delay: 0s; }
+  #mobileDrawer[hidden] { visibility: hidden !important; }
+  #mobileDrawer #drawerBackdrop, #mobileDrawer .edu-drawer-backdrop { opacity: 0; transition: opacity .3s ease; }
+  #mobileDrawer.open #drawerBackdrop, #mobileDrawer.is-open .edu-drawer-backdrop { opacity: 1; }
+  #mobileDrawer .m-drawer-panel { transform: translateX(-102%); transition: transform .34s cubic-bezier(.32,1,.68,1); will-change: transform; }
+  #mobileDrawer.open .m-drawer-panel { transform: translateX(0); }
+  /* Bottom tab bar */
+  .m-tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: rgba(255,255,255,.92); backdrop-filter: blur(16px); border-top: 1px solid #E2E8F0; padding-bottom: env(safe-area-inset-bottom); }
+  .m-tabbar a, .m-tabbar span.m-tab { min-height: 56px; min-width: 64px; }
+  .m-tabbar .active { background: #0F172A; color: #fff; }
+  /* Sticky mobile action bar for forms */
+  .m-sticky-actions { position: sticky; bottom: calc(var(--m-tab-h) + 8px); z-index: 15; background: rgba(255,255,255,.95); backdrop-filter: blur(10px); border: 1px solid #E2E8F0; border-radius: 14px; padding: 8px; }
+  /* Back to top */
+  #mToTop { position: fixed; right: 14px; bottom: calc(var(--m-tab-h) + 16px); z-index: 31; width: 48px; height: 48px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: #0F172A; color: #fff; box-shadow: 0 8px 24px rgba(15,23,42,.25); border: none; }
+  #mToTop.show { display: inline-flex; }
+  /* Modals full-sheet on mobile */
+  .modal-dialog { margin: 8px; }
+  .modal-content { border-radius: 18px; }
+  /* ── Role-aware quick pills: no clipping, even scroll ── */
+  .m-quicknav > div { scrollbar-width: none; }
+  .m-quicknav > div::-webkit-scrollbar { display: none; }
+  .m-quicknav .btn { flex: 0 0 auto; max-width: 72vw; overflow: hidden; text-overflow: ellipsis; }
+  /* ── Teacher dashboard polish ── */
+  .teacher-head { flex-direction: column; align-items: stretch !important; }
+  .teacher-head h1 { font-size: 1.35rem !important; }
+  .teacher-actions { width: 100%; }
+  .teacher-actions .btn { flex: 1 1 0; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+  .stat-card h2 { font-size: 1.5rem !important; }
+  .stat-card .text-uppercase { font-size: .68rem !important; line-height: 1.3; }
+  .stat-card .stat-icon { width: 40px; height: 40px; font-size: 1.1rem; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
+  .teacher-row-actions .btn-group { display: flex; flex-wrap: wrap; gap: 4px; }
+  .teacher-row-actions .btn-group .btn { border-radius: 8px !important; min-height: 40px; }
+  /* Chatbot must sit above bottom tabbar, not behind it */
+  #eduChatBtn { bottom: calc(var(--m-tab-h) + 14px) !important; right: 14px !important; width: 52px !important; height: 52px !important; }
+  #eduChatPanel { bottom: calc(var(--m-tab-h) + 74px) !important; right: 10px !important; }
+  /* Notification bell sheet on small screens */
+  #notifBellWrap .dropdown-menu { position: fixed !important; top: 62px !important; right: 8px !important; left: 8px !important; width: auto !important; max-width: none !important; transform: none !important; z-index: 1050; }
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+}

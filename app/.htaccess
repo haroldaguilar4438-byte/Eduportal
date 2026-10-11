@@ -1,0 +1,2 @@
+# Application code must NEVER be served directly (defense in depth).
+Require all denied

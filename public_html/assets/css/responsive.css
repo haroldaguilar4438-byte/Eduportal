@@ -1,0 +1,421 @@
+/* ============================================================
+   EduPortal — Global Responsive System
+   Presentation ONLY: no routes, logic, roles, or workflows changed.
+   Loaded LAST so it can refine (never replace) design-system.css.
+
+   Breakpoints: 1400 / 1280 / 1024 / 900 / 768 / 640 / 480 / 375 / 360
+   Strategy: desktop multi-column -> tablet reduced -> mobile stacked.
+   Page itself NEVER scrolls horizontally; only inner containers may.
+   ============================================================ */
+
+/* ---------- 0. Viewport / overflow guard (strict: no page overflow) ---------- */
+html, body {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+@supports not (overflow: clip) {
+  html, body { overflow-x: hidden; }
+}
+body { min-width: 0; }
+img, svg, video, canvas, iframe {
+  max-width: 100%;
+  height: auto;
+}
+img { object-fit: cover; }
+iframe { border: 0; }
+pre, code, kbd, samp {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+table { max-width: 100%; }
+p, li, td, th, .edu-card__title, .card-title {
+  overflow-wrap: anywhere;
+}
+
+/* Bootstrap 5.3 ships NO base .container padding below 576px (only
+   breakpoint max-widths); the Tailwind Play CDN supplies width only.
+   Without gutters, every .container > .row overflows phones by exactly
+   24px (row -12px margins uncompensated) and pushes edge controls such
+   as the navbar toggler partly off-screen. Restore the 12px gutters —
+   identical to Bootstrap's own >=576px value, so desktop is unchanged. */
+.container, .container-fluid {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* Framework collision fix (root cause): the Tailwind Play CDN scans the
+   DOM and auto-generates its own `.collapse{visibility:collapse}` utility,
+   which collides with Bootstrap's `.collapse` component class. The injected
+   rule arrives AFTER every stylesheet (and only after Tailwind finishes
+   compiling — which is why the menu works for a split second, then its
+   links vanish the moment the rule lands). These selectors outrank the
+   injected single-class rule, restoring visibility; the open/closed state
+   itself stays governed by Bootstrap's display rules, so nothing that
+   should stay hidden is revealed. */
+.collapse.show,
+.navbar-collapse.collapse,
+.collapsing {
+  visibility: visible;
+}
+
+/* ---------- 1. Shell: desktop sidebar has a real width (root cause fix) ---------- */
+@media (min-width: 1024px) {
+  .edu-shell { display: flex; min-height: 100vh; }
+  .edu-sidebar {
+    width: 280px !important;
+    flex: 0 0 280px !important;
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0;
+  }
+  .edu-main-col { flex: 1 1 auto !important; min-width: 0 !important; max-width: calc(100vw - 280px); }
+  .edu-shell.sidebar-collapsed .edu-sidebar { width: 78px !important; flex-basis: 78px !important; }
+  .edu-shell.sidebar-collapsed .edu-main-col { max-width: calc(100vw - 78px); }
+  .edu-content { padding: 1.5rem; }
+}
+@media (min-width: 1280px) {
+  .edu-content { max-width: 1400px; }
+}
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  /* Tablet landscape / small laptop: slightly narrower rail */
+  .edu-sidebar { width: 248px !important; flex-basis: 248px !important; }
+  .edu-main-col { max-width: calc(100vw - 248px); }
+  .edu-shell.sidebar-collapsed .edu-sidebar { width: 78px !important; flex-basis: 78px !important; }
+  .edu-shell.sidebar-collapsed .edu-main-col { max-width: calc(100vw - 78px); }
+}
+
+/* ---------- 2. Fluid typography (readable, never tiny, never giant) ---------- */
+h1, .h1 { font-size: clamp(1.35rem, 1.1rem + 1.4vw, 2rem); line-height: 1.2; }
+h2, .h2 { font-size: clamp(1.15rem, 1rem + 0.9vw, 1.5rem); line-height: 1.25; }
+h3, .h3 { font-size: clamp(1.02rem, 0.95rem + 0.5vw, 1.25rem); line-height: 1.3; }
+body { font-size: clamp(0.9rem, 0.875rem + 0.15vw, 1rem); }
+.small, small { font-size: 0.82em; }
+.btn { font-size: 0.9rem; }
+.table td, .table th, .edu-table td, .edu-table th { font-size: 0.875rem; }
+
+/* ---------- 3. KPI / stat grids: 4 -> 2 -> 1 (never cramped) ---------- */
+@media (max-width: 1023.98px) {
+  .row.g-3 > [class*="col-lg-3"], .row.g-3 > [class*="col-xl-3"] { flex: 0 0 auto; width: 50%; }
+  .row.g-4 > [class*="col-lg-3"], .row.g-4 > [class*="col-xl-3"] { flex: 0 0 auto; width: 50%; }
+}
+@media (max-width: 480px) {
+  /* Phones: one KPI per row so amounts/labels never clip */
+  .row.g-3 > [class*="col-6"], .row.g-4 > [class*="col-6"] { flex: 0 0 auto; width: 100%; }
+  .edu-stat__value { font-size: 1.35rem; }
+  .stat-card h2 { font-size: 1.35rem; }
+}
+/* Dashboard two-pane rows stack on tablet and below */
+@media (max-width: 1023.98px) {
+  .row.g-3 > [class*="col-xl-7"], .row.g-3 > [class*="col-xl-5"],
+  .row.g-3 > [class*="col-xl-6"], .row.g-3 > [class*="col-xl-4"],
+  .row.g-3 > [class*="col-xl-8"], .row.g-3 > [class*="col-lg-7"],
+  .row.g-3 > [class*="col-lg-5"], .row.g-3 > [class*="col-lg-6"],
+  .row.g-3 > [class*="col-lg-4"], .row.g-3 > [class*="col-lg-8"] {
+    flex: 0 0 auto; width: 100%;
+  }
+}
+
+/* ---------- 4. Cards: natural stacking, no narrow cards ---------- */
+.edu-card, .card { min-width: 0; }
+@media (max-width: 640px) {
+  .row.g-3 > [class*="col-md-6"], .row.g-3 > [class*="col-md-4"],
+  .row.g-2 > [class*="col-md-6"], .row.g-2 > [class*="col-md-4"],
+  .row.g-3 > [class*="col-xl-4"], .row.g-2 > [class*="col-xl-4"] {
+    flex: 0 0 auto; width: 100%;
+  }
+  .edu-card__head { align-items: flex-start; }
+  .edu-card__head .btn, .edu-card__head .badge { flex-shrink: 0; }
+}
+
+/* ---------- 5. Tables: contained scroll; card conversion where opted-in ---------- */
+.table-responsive, .edu-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  scrollbar-width: thin;
+}
+.table-responsive .table, .edu-table-scroll .edu-table { min-width: 560px; }
+.table td, .table th, .edu-table td, .edu-table th {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+/* Long peso amounts / codes never overlap */
+.table td, .edu-table td { font-variant-numeric: tabular-nums; }
+td code, td .badge, .edu-table td code { overflow-wrap: anywhere; white-space: normal; }
+/* Keep header actions usable on narrow screens */
+.table td.text-end .btn-group, .edu-table td.text-end .btn-group { flex-wrap: wrap; }
+/* Generic Bootstrap tables on very small screens: allow wrap instead of
+   forcing one-line rows that push the container too wide. */
+@media (max-width: 640px) {
+  .table-responsive .table td, .table-responsive .table th { white-space: normal; }
+  .table-responsive .table thead th { white-space: nowrap; }
+  /* .edu-table--cards conversion (already defined in design-system) needs
+     data-labels; responsive.js injects them automatically. */
+}
+
+/* ---------- 6. Filter / search bars stack ---------- */
+.edu-filterbar { min-width: 0; }
+@media (max-width: 768px) {
+  .edu-filterbar { flex-direction: column; align-items: stretch; }
+  .edu-filterbar__search { flex: 1 1 auto; width: 100%; min-width: 0; }
+  .edu-filterbar__group { width: 100%; }
+  .edu-filterbar__group .form-control, .edu-filterbar__group .form-select,
+  .edu-filterbar__group .btn { flex: 1 1 140px; min-width: 0; }
+  form[method="get"] .row.g-2 > [class*="col-"] { flex: 0 0 auto; width: 100%; }
+  form[method="get"] .row.g-2 > [class*="col-sm-"], form[method="get"] .row.g-2 > [class*="col-md-"] { width: 100%; }
+}
+@media (min-width: 481px) and (max-width: 768px) {
+  form[method="get"] .row.g-2 > [class*="col-md-3"] { width: 50%; }
+  form[method="get"] .row.g-2 > [class*="col-md-4"] { width: 50%; }
+}
+
+/* ---------- 7. Forms: multi-column -> stacked, touch-sized ---------- */
+.form-control, .form-select { min-width: 0; max-width: 100%; }
+@media (max-width: 576px) {
+  .row.g-2 > [class*="col-6"], .row.g-3 > [class*="col-6"] { flex: 0 0 auto; width: 100%; }
+  .row.g-2 > [class*="col-sm-6"], .row.g-3 > [class*="col-sm-6"] { width: 100%; }
+  .col-12.col-sm-6, .col-6.col-md-3, .col-12.col-md-8, .col-12.col-md-4 { flex: 0 0 auto; width: 100%; }
+  .form-control, .form-select { font-size: 16px; padding: 0.65rem 0.8rem; } /* stops iOS zoom */
+  .input-group { flex-wrap: wrap; }
+  .input-group > .form-control { flex: 1 1 100%; width: 100%; }
+  .invalid-feedback, .valid-feedback, .form-text { overflow-wrap: anywhere; }
+}
+/* Keep compact 2-col only where it is genuinely a pair (date pairs etc.) */
+@media (min-width: 577px) and (max-width: 768px) {
+  .row.g-2 > div[class*="col-6 col-md-3"] { flex: 0 0 auto; width: 50%; }
+}
+
+/* ---------- 8. Buttons: touch-friendly, full-width where appropriate ---------- */
+.btn { min-height: 40px; touch-action: manipulation; }
+.btn-sm { min-height: 36px; }
+@media (max-width: 576px) {
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 42px; }
+  .edu-page-header__actions { width: 100%; }
+  .edu-page-header__actions .btn { flex: 1 1 100%; }
+  .edu-card__foot .btn.w-100, form .btn.w-100 { width: 100% !important; }
+  .d-flex.gap-2 > .btn, .d-flex.gap-1 > .btn { min-width: 0; }
+  .btn-group { flex-wrap: wrap; }
+  .btn-group .btn { border-radius: 8px !important; margin-bottom: 4px; }
+  /* Icon-only buttons keep a 44px target */
+  .btn-icon, td .btn-sm.btn-outline-secondary, td .btn-sm.btn-outline-danger { min-width: 42px; min-height: 42px; }
+}
+
+/* ---------- 9. Modals / drawers: fit viewport, internal scroll ---------- */
+.modal-dialog { max-width: calc(100vw - 1.5rem); margin: 0.75rem auto; }
+.modal-content { max-height: calc(100vh - 1.5rem); max-height: calc(100dvh - 1.5rem); display: flex; flex-direction: column; }
+.modal-body { overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
+.modal-footer { flex-wrap: wrap; gap: 0.5rem; }
+.modal-footer .btn { flex: 1 1 140px; }
+@media (max-width: 576px) {
+  .modal-dialog { margin: 0.5rem; max-width: calc(100vw - 1rem); }
+  .modal-content { border-radius: 18px; max-height: calc(100dvh - 1rem); }
+  .modal-footer { flex-direction: column; align-items: stretch; }
+  .modal-footer .btn { width: 100%; }
+  .edu-drawer { width: 100% !important; }
+}
+
+/* ---------- 10. Dropdowns / menus: never clip, never leave viewport ---------- */
+.dropdown-menu {
+  max-width: min(92vw, 360px);
+  max-height: min(70vh, 420px);
+  max-height: min(70dvh, 420px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.dropdown-item { white-space: normal; overflow-wrap: anywhere; min-height: 42px; display: flex; align-items: center; gap: 0.5rem; }
+/* Large selection lists scroll */
+select.form-select[size], select[size] { max-height: 240px; }
+
+/* ---------- 11. Pagination: compact, never overflows ---------- */
+.pagination { flex-wrap: wrap; row-gap: 6px; max-width: 100%; }
+.page-link { min-width: 40px; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 576px) {
+  .pagination { justify-content: center; }
+  .pagination .page-item.overflow-hidden { display: none; }
+}
+
+/* ---------- 12. Tabs: horizontal scroll inside component ---------- */
+.edu-tabs, .nav-tabs { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.edu-tabs::-webkit-scrollbar, .nav-tabs::-webkit-scrollbar { display: none; }
+.edu-tab, .nav-tabs .nav-link { flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; }
+
+/* ---------- 13. Charts: resize with container, stack vertically ---------- */
+canvas { max-width: 100% !important; height: auto !important; }
+.chart-container, [id*="chart" i], [class*="chart" i] { max-width: 100%; min-width: 0; }
+@media (max-width: 900px) {
+  .row.g-3 > div:has(> canvas), .row.g-4 > div:has(> canvas) { flex: 0 0 auto; width: 100%; }
+  .enrol-chart-wrap { max-width: 100%; overflow-x: auto; }
+}
+.edu-week { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+@media (max-width: 640px) {
+  .edu-week { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 400px) {
+  .edu-week { grid-template-columns: 1fr; }
+}
+
+/* ---------- 14. Stepper / tracker: vertical on mobile, NEVER hidden ---------- */
+@media (max-width: 768px) {
+  .edu-stepper { display: flex !important; flex-direction: column !important; gap: 0; }
+  .edu-stepper__item { flex: none !important; width: 100% !important; padding-bottom: 1rem; position: relative; }
+  .edu-stepper__line {
+    position: absolute; left: 15px; top: 32px; bottom: 0;
+    width: 2px; height: auto; margin: 0;
+  }
+  .edu-stepper__item:last-child { padding-bottom: 0; }
+  .edu-stepper__item:last-child .edu-stepper__line { display: none; }
+  .edu-stepper__label, .edu-stepper__hint { white-space: normal !important; }
+  .edu-track { flex-wrap: wrap; gap: 0.5rem; }
+  .edu-track__node { flex: 1 1 40%; width: auto; }
+  .edu-track__bar { display: none; }
+}
+
+/* ---------- 15. Definition lists / schedules stack ---------- */
+@media (max-width: 640px) {
+  .edu-dl__row { grid-template-columns: 1fr; gap: 0.15rem; }
+  .edu-sched-row { flex-direction: column; gap: 0.35rem; }
+  .edu-sched-row__time { width: auto; }
+}
+
+/* ---------- 16. Payment / checkout: summary un-sticks, methods stack ---------- */
+@media (max-width: 991.98px) {
+  .edu-card--primary[style*="sticky"], [style*="position:sticky"] { position: static !important; top: auto !important; }
+}
+@media (max-width: 480px) {
+  #methodGrid > [class*="col-6"] { flex: 0 0 auto; width: 50%; }
+  #methodGrid .method-card { padding: 0.75rem 0.5rem !important; }
+}
+@media (max-width: 360px) {
+  #methodGrid > [class*="col-6"] { width: 100%; }
+}
+/* Peso amounts never cut off */
+.fw-bold, .fs-4, .fs-5 { overflow-wrap: anywhere; }
+
+/* ---------- 17. Enrollment / permit / grading helpers ---------- */
+@media (max-width: 768px) {
+  .ann-attachment-frame { height: 320px; }
+  .blog-featured-img { max-height: 320px; }
+  .blog-card-img { max-height: 220px; }
+  .news-media--featured img { height: 180px; }
+  .news-media--small img { height: 120px; }
+}
+/* Grading inputs stay usable on phones */
+@media (max-width: 576px) {
+  input[type="number"].form-control, input[type="number"].form-control-sm { font-size: 16px; min-height: 46px; }
+  .max-score-input { width: 100%; }
+}
+
+/* ---------- 18. Uploads / dropzones ---------- */
+.edu-dropzone, .dropzone { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+input[type="file"].form-control { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 576px) {
+  .edu-dropzone { padding: 1rem 0.85rem; }
+}
+
+/* ---------- 19. Topbar / mobile bar / bottom bar ---------- */
+@media (max-width: 1023.98px) {
+  .edu-topbar { display: none !important; }
+  .edu-mobile-bar { position: sticky; top: 0; z-index: 40; }
+  .edu-content { padding: 1rem 0.85rem 6rem !important; }
+  /* Content column never forces page wider than viewport */
+  .edu-main-col { min-width: 0 !important; max-width: 100vw !important; }
+  main > div, main .max-w-7xl, main .container, main .container-fluid { max-width: 100% !important; min-width: 0 !important; }
+}
+/* Bottom bar clearance + safe area */
+@media (max-width: 1023.98px) {
+  .edu-bottom-bar { padding-bottom: calc(0.3rem + env(safe-area-inset-bottom, 0px)); }
+  .app-footer { margin-bottom: 0; padding-bottom: 0.5rem; }
+}
+/* Landscape phones: shorter bars, two-col KPIs back */
+@media (max-height: 480px) and (orientation: landscape) {
+  .edu-bottom-bar__item { min-height: 44px; }
+  .edu-content { padding-bottom: 4.5rem !important; }
+  .modal-content { max-height: calc(100dvh - 1rem); }
+  .row.g-3 > [class*="col-6"] { width: 50%; }
+  .edu-drawer-panel { width: min(420px, 92vw); }
+}
+
+/* ---------- 20. Drawer: smooth, overlay, touch-sized ---------- */
+.edu-drawer-shell[hidden] { display: none !important; }
+.edu-drawer-shell { position: fixed; inset: 0; z-index: 1050; }
+.edu-drawer-backdrop { position: fixed; inset: 0; }
+.edu-drawer-panel { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.edu-drawer-nav { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.edu-drawer-nav .edu-sidebar-link { min-height: 48px; }
+.edu-drawer-close { min-width: 44px; min-height: 44px; }
+#mobileMenuBtn { min-width: 44px; min-height: 44px; }
+
+/* ---------- 21. Auth pages ---------- */
+@media (max-width: 991.98px) {
+  .auth-panel { display: none !important; }
+  .auth-layout { display: block; height: auto; min-height: 100dvh; }
+  .auth-form-col { padding: 1.5rem 1rem 3rem; }
+  .auth-form-wrap { max-width: 520px; margin-inline: auto; }
+}
+
+/* ---------- 22. Public site (home / news / blog) ---------- */
+@media (max-width: 768px) {
+  .section-pad { padding: 40px 0; }
+  .hero h1, .home-hero-title { font-size: clamp(1.6rem, 6vw, 2rem); }
+  .cta-band { border-radius: 14px; margin-inline: 0.75rem; }
+  .nav-public .navbar-nav { gap: 0.25rem; }
+}
+@media (max-width: 576px) {
+  .program-card { margin-bottom: 0; }
+  .display-1, .display-2, .display-3, .display-4 { font-size: clamp(1.8rem, 8vw, 2.6rem); }
+}
+
+/* ---------- 23. Notifications / feeds / announcements ---------- */
+.edu-feed__item { min-width: 0; }
+.edu-feed__body { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 576px) {
+  .edu-page-header { flex-direction: column; align-items: stretch; }
+  .list-group-item { overflow-wrap: anywhere; }
+}
+
+/* ---------- 24. Touch: no hover-only actions ---------- */
+@media (hover: none) {
+  .card:hover, .program-card:hover, .edu-card--hover:hover,
+  .edu-stat:hover, .stat-card:hover { transform: none !important; }
+  /* Row click targets already have real links/buttons; keep them tappable */
+  tr[role="button"] { cursor: pointer; }
+  tr[role="button"] .btn { min-height: 42px; }
+}
+a, button { -webkit-tap-highlight-color: transparent; }
+
+/* ---------- 25. Focus visibility (keyboard + touch) ---------- */
+:focus-visible {
+  outline: 3px solid rgba(46, 109, 164, 0.45);
+  outline-offset: 2px;
+}
+
+/* ---------- 26. Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- 27. Print stays intact ---------- */
+@media print {
+  .edu-mobile-bar, .edu-bottom-bar, .edu-drawer-shell { display: none !important; }
+}
+
+/* ---------- 28. Tiny phones (320–360px): last-resort tightening ---------- */
+@media (max-width: 360px) {
+  .edu-content { padding: 0.85rem 0.65rem 6rem !important; }
+  .edu-card__body, .edu-form-section__body, .card-body { padding: 0.9rem !important; }
+  .edu-page-header__title { font-size: 1.15rem; }
+  .table-responsive { margin-inline: -0.65rem; padding-inline: 0.65rem; }
+  .edu-badge { white-space: normal; text-align: center; }
+  .d-flex.gap-2, .d-flex.gap-1 { flex-wrap: wrap; }
+}

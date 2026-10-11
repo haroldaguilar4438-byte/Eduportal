@@ -1,0 +1,23 @@
+# Uploaded files are STATIC ASSETS ONLY - script execution is forbidden here.
+Options -Indexes
+
+<FilesMatch "\.(?i:php|phtml|php3|php4|php5|php7|phps|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Belt-and-suspenders: strip handlers/types even if a match is missed
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phps .phar
+RemoveType    .php .phtml .php3 .php4 .php5 .php7 .phps .phar
+
+# Stored-XSS mitigation: block MIME sniffing everywhere under uploads.
+# (documents/ and submissions/ additionally force Save-As via their own
+# .htaccess; avatars/ stay inline so <img> rendering keeps working.)
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>

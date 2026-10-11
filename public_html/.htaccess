@@ -1,0 +1,62 @@
+# =============================================================
+# EduPortal - public_html/.htaccess  (Apache 2.4 / Hostinger) — xtinger.com
+# =============================================================
+# Hostinger live environment — only applied when NOT on localhost (local XAMPP uses credentials.php defaults)
+<If "%{HTTP_HOST} != 'localhost' && %{HTTP_HOST} != '127.0.0.1' && %{HTTP_HOST} != '::1' && %{HTTP_HOST} !~ /^localhost:/ && %{HTTP_HOST} !~ /^127\.0\.0\.1:/">
+    SetEnv APP_ENV production
+    SetEnv DB_HOST localhost
+    SetEnv DB_NAME u788443931_datamex
+    SetEnv DB_USER u788443931_eduportal
+    SetEnv DB_PASS Aguilar4438
+    SetEnv PAYREX_WEBHOOK_SECRET whsk_E2BmLPy5YnH3DZSu3xAYsPASRXUd462D
+</If>
+# Optional: force BASE_URL if auto-detect fails (include https)
+# SetEnv BASE_URL https://skyblue-sardine-644746.hostingersite.com
+
+Options -Indexes
+
+# Serve the front controller for bare-folder requests.
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS only on live (skip localhost + ngrok for testing)
+    RewriteCond %{HTTP_HOST} !^localhost [NC]
+    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+    RewriteCond %{HTTP_HOST} !^::1 [NC]
+    RewriteCond %{HTTP_HOST} !\.ngrok-free\.dev [NC]
+    RewriteCond %{HTTP_HOST} !\.ngrok\.io [NC]
+    RewriteCond %{HTTP_HOST} !\.ngrok-free\.app [NC]
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Front-controller: route anything that is not a real file/dir
+    # to index.php (the live front controller).
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# Never serve dotfiles or sensitive extensions
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(sql|log|ini|bak|old|md|dist|example)$">
+    Require all denied
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# Protect PHP upload limits (tune as needed for document uploads)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+</IfModule>

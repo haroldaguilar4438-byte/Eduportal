@@ -1,0 +1,22 @@
+# EduPortal — files that must never go to GitHub
+# Secrets with real passwords/API keys (commit credentials.example.php only)
+app/config/credentials.php
+
+# Runtime logs (folder structure with .gitkeep/.htaccess is still tracked)
+logs/*.log
+
+# User-uploaded files (documents, avatars, receipts, submissions, ...)
+# Keep .htaccess protection files, ignore everything else
+public_html/uploads/*
+!public_html/uploads/.htaccess
+public_html/uploads/*/*
+!public_html/uploads/*/.htaccess
+
+# OS / editor junk
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.bak
+*~
