@@ -1,80 +1,196 @@
 <?php
 declare(strict_types=1);
+
 namespace App\Core;
+
 use Throwable;
+
+/**
+ * Gemini transport for the EduPortal assistant.
+ *
+ * Upgraded from the previous version, which:
+ *   - stuffed the system prompt INSIDE the first user message (so the model
+ *     treated instructions as something the user said),
+ *   - disabled TLS certificate verification whenever no bundled CA file was
+ *     found (true on Hostinger, since the hardcoded XAMPP paths don't exist),
+ *   - had no server-side conversation memory, so context depended entirely on
+ *     whatever the browser sent.
+ *
+ * Now: proper systemInstruction, verified TLS via the platform CA bundle,
+ * server-authoritative history, bounded token budget, and clear errors.
+ */
 final class GeminiClient
 {
     private string $apiKey;
     private string $model;
     private string $base = 'https://generativelanguage.googleapis.com/v1beta';
 
-    public function __construct(?string $apiKey=null, ?string $model=null)
+    public function __construct(?string $apiKey = null, ?string $model = null)
     {
         $this->apiKey = $apiKey ?? (defined('GEMINI_API_KEY') ? GEMINI_API_KEY : '');
-        $this->model = $model ?? (defined('GEMINI_MODEL') ? GEMINI_MODEL : 'gemini-1.5-flash');
-        if ($this->apiKey==='') throw new \RuntimeException('Gemini API key not configured');
+        $this->model  = $model  ?? (defined('GEMINI_MODEL') ? GEMINI_MODEL : 'gemini-2.0-flash');
+        if ($this->apiKey === '') {
+            throw new \RuntimeException('Gemini API key not configured');
+        }
     }
 
-    public function chat(string $userMessage, array $history=[]): string
+    /**
+     * @param array<int,array{role:string,text:string}> $history oldest -> newest
+     */
+    public function chat(string $userMessage, array $history = [], ?string $accountContext = null): string
     {
-        $system = defined('SYSTEM_CONTEXT') ? SYSTEM_CONTEXT : "You are a helpful assistant for a School Management System. You help students, teachers, and admins with questions about grades, schedules, enrollment, and school policies. Keep answers short, friendly, and professional. If you don't know something specific, suggest contacting the school admin.";
-        $contents=[];
-        if(!empty($history)){
-            $contents[]=['role'=>'user','parts'=>[['text'=>$system]]];
-            $contents[]=['role'=>'model','parts'=>[['text'=>'Understood. I will help as EduPortal assistant.']]];
-            foreach($history as $h){
-                if(!isset($h['role'],$h['text'])) continue;
-                $role = $h['role']==='user'?'user':'model';
-                $contents[]=['role'=>$role,'parts'=>[['text'=>mb_substr((string)$h['text'],0,2000)]]];
-            }
-            $contents[]=['role'=>'user','parts'=>[['text'=>mb_substr($userMessage,0,2000)]]];
-        } else {
-            $contents[]=['role'=>'user','parts'=>[['text'=>$system . "\n\nUser: " . mb_substr($userMessage,0,2000)]]];
+        $contents = [];
+
+        // Real multi-turn history (excluding a trailing duplicate of the
+        // current message, which we append ourselves).
+        $turns = [];
+        foreach ($history as $h) {
+            if (!is_array($h) || !isset($h['role'], $h['text'])) continue;
+            $text = trim((string) $h['text']);
+            if ($text === '') continue;
+            $turns[] = ['role' => ($h['role'] === 'user' ? 'user' : 'model'), 'parts' => [['text' => mb_substr($text, 0, 1500)]]];
+        }
+        // Gemini requires the conversation to start with a user turn.
+        if (isset($turns[0]) && $turns[0]['role'] === 'model') array_shift($turns);
+
+        $message = mb_substr(trim($userMessage), 0, 2000);
+        $turns[] = ['role' => 'user', 'parts' => [['text' => $message]]];
+        $contents = $turns;
+
+        $system = ChatbotKnowledge::systemPrompt();
+        if ($accountContext !== null && trim($accountContext) !== '') {
+            $system .= "\n\nLIVE STATUS OF THE SIGNED-IN USER (authoritative, read-only).\n"
+                     . "Use it to answer questions about what is actually on their account. "
+                     . "Never reveal another person's data. If their question is about a detail that "
+                     . "is not in this snapshot, tell them where to check instead of guessing.\n"
+                     . $accountContext;
         }
 
-        $payload = json_encode(['contents'=>$contents,'generationConfig'=>['temperature'=>0.7,'maxOutputTokens'=>512]]);
-        $url = defined('GEMINI_API_URL') ? GEMINI_API_URL : $this->base.'/models/'.rawurlencode($this->model).':generateContent?key='.urlencode($this->apiKey);
+        $payload = json_encode([
+            'contents' => $contents,
+            'systemInstruction' => ['parts' => [['text' => $system]]],
+            'generationConfig' => [
+                'temperature'        => 0.65,
+                'topP'               => 0.92,
+                'maxOutputTokens'    => 700,
+                'candidateCount'     => 1,
+            ],
+            'safetySettings' => [
+                ['category' => 'HARM_CATEGORY_HARASSMENT',        'threshold' => 'BLOCK_ONLY_HIGH'],
+                ['category' => 'HARM_CATEGORY_HATE_SPEECH',       'threshold' => 'BLOCK_ONLY_HIGH'],
+                ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_ONLY_HIGH'],
+                ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_ONLY_HIGH'],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        $ch=curl_init($url);
-        $ca=null; foreach(['C:/xampp/php/extras/ssl/cacert.pem','C:/xampp/apache/bin/curl-ca-bundle.crt'] as $c) if(is_file($c)){$ca=$c; break;}
-        curl_setopt_array($ch,[
-            CURLOPT_POST=>true,
-            CURLOPT_POSTFIELDS=>$payload,
-            CURLOPT_HTTPHEADER=>['Content-Type: application/json'],
-            CURLOPT_RETURNTRANSFER=>true,
-            CURLOPT_TIMEOUT=>20,
-            CURLOPT_SSL_VERIFYPEER=>$ca?true:false,
-            CURLOPT_SSL_VERIFYHOST=>$ca?2:0,
-            CURLOPT_CAINFO=>$ca?:null,
-        ]);
-        $body=curl_exec($ch);
-        if($body===false) throw new \RuntimeException('Gemini network error: '.curl_error($ch));
-        $status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
-        $json=json_decode($body,true);
-        if($status>=400){
-            $msg=$json['error']['message'] ?? 'Gemini error HTTP '.$status;
+        if ($payload === false) throw new \RuntimeException('Could not encode request');
+        $url = $this->base . '/models/' . rawurlencode($this->model) . ':generateContent?key=' . urlencode($this->apiKey);
+
+        $body = $this->post($url, $payload);
+        $json = json_decode($body, true);
+        if (!is_array($json)) throw new \RuntimeException('Gemini returned an unreadable response');
+
+        if (isset($json['error'])) {
+            $msg = (string) ($json['error']['message'] ?? 'Gemini error');
             throw new \RuntimeException($msg);
         }
-        $text=$json['candidates'][0]['content']['parts'][0]['text'] ?? '';
-        if(trim($text)==='') $text="Sorry, I couldn't generate a response. Please try rephrasing.";
+        if (($json['promptFeedback']['blockReason'] ?? '') !== '') {
+            throw new \RuntimeException('Blocked by safety filter');
+        }
+
+        $text = '';
+        foreach (($json['candidates'][0]['content']['parts'] ?? []) as $p) {
+            if (isset($p['text'])) $text .= (string) $p['text'];
+        }
+        $finish = (string) ($json['candidates'][0]['finishReason'] ?? '');
+        if (trim($text) === '') {
+            if ($finish === 'MAX_TOKENS') {
+                return trim($text) !== ''
+                    ? trim($text)
+                    : "That answer got cut off - could you ask me about one thing at a time?";
+            }
+            throw new \RuntimeException('Gemini returned an empty response');
+        }
         return trim($text);
     }
 
-    public static function fallback(string $msg): string
+    /** POST with verified TLS. Uses the platform CA bundle when available. */
+    private function post(string $url, string $payload): string
     {
-        $m=strtolower(trim($msg));
-        if(preg_match('/\b(verify|verification|verified|otp|email.*verify)\b/i',$m)) return "Hey! 😊 For Verification:\n\n- After you register, you go to /verify-pending\n- We sent you a link that lasts 24 hours, or you can get a 6-digit code that lasts 10 minutes\n- Just click the link or type the code, the page checks every 3 seconds and will show Verified then go to Sign in\n- Buttons have 60 seconds wait before you can resend";
-        if(str_contains($m,'enroll')) return "Enroll time! 🎓\n\n- Go to /enroll and fill your info and upload your files\n- Click Submit and check /my-enrollments\n- Steps: pending -> Accounting check -> Registrar check -> Awaiting Payment -> Pay with PayRex at /enroll/id/pay -> waiting for admin -> Admin approves in /admin/payments -> Approved and Enrolled! Then My Subjects will open.";
-        if(str_contains($m,'pay')||str_contains($m,'payrex')||str_contains($m,'payment')) return "Payment with PayRex:\n\n- After Accounting and Registrar approve, you will see Pay Now in My Applications with your exact amount (GCash, Maya, Card, QRPh - follows the school tuition plan)\n- After you pay, status is processing and waits for admin\n- Admin goes to Payments and clicks Approve and Send Receipt, then you are paid and get your receipt by email.";
-        if(str_contains($m,'permit')) return "Exam Permits:\n\n- You need to be fully enrolled first\n- Then request in order: Prelim, then Midterm, then Prefinal, then Finals\n- Each one needs Accounting, then Registrar, then Teacher to approve\n- You can request them on your Dashboard or at /student/permits";
-        if(str_contains($m,'subject')||str_contains($m,'classroom')||str_contains($m,'invite')||str_contains($m,'join')) return "My Subjects:\n\n- Only after you are fully enrolled\n- Admin creates the official subject and assigns your teacher, you get a code like CS7K9P2\n- You paste it at Dashboard -> My Subjects -> Validate and preview, then Confirm join\n- Then your tasks will show up";
-        if(str_contains($m,'grade')||str_contains($m,'schedule')) return "For grades and schedules, just check your Dashboard after you are enrolled and joined your subjects. Everything is there! If you need more details, ask your teacher.";
-        $offTopic = preg_match('/\b(basketball|football|game|joke|love|personal|politics|music|movie|sport|math|weather|hello|hi|hey)\b/i',$m) && !preg_match('/\b(enroll|pay|permit|subject|verify|grade|schedule|account|profile|password|payment|enrollment)\b/i',$m);
-        if($offTopic || mb_strlen($m) < 3 || in_array($m,['verification','verify','hi','hello','hey','help'],true)){
-            if(preg_match('/\b(verify|verification)\b/i',$m)) return "Hey! 😊 For Verification:\n\n- After you register, you go to /verify-pending\n- We sent you a link that lasts 24 hours, or you can get a 6-digit code that lasts 10 minutes\n- Just click the link or type the code, the page checks every 3 seconds and will show Verified then go to Sign in\n- Buttons have 60 seconds wait before you can resend";
-            return "Haha that's outside what I can do 😅\n\nI'm best at helping with Enrollment, PayRex, Permits, Subjects and Verification.\n\nFor other things, please talk to the admin at datamex82@gmail.com or visit the Registrar.\n\nWhat can I help you with about the portal today?";
+        if (!function_exists('curl_init')) {
+            throw new \RuntimeException('cURL is not available on this server');
         }
-        return "Hey there! 😊 I'm EduPortal Buddy for Datamex College!\n\nI can help you with:\n- Enrollment\n- PayRex payments\n- Exam Permits\n- Subjects\n- Verification and Accounts\n\nJust tell me what you need help with! For anything not about the portal, please talk to the admin at datamex82@gmail.com 😊";
+        $ca = self::caBundle();
+        $ch = curl_init($url);
+        $opts = [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS      => $payload,
+            CURLOPT_HTTPHEADER      => ['Content-Type: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT         => 25,
+            CURLOPT_CONNECTTIMEOUT  => 8,
+            CURLOPT_FOLLOWLOCATION  => false,
+        ];
+        if ($ca !== null) {
+            $opts[CURLOPT_SSL_VERIFYPEER] = true;
+            $opts[CURLOPT_SSL_VERIFYHOST] = 2;
+            $opts[CURLOPT_CAINFO] = $ca;
+        } elseif (defined('OPENSSL_CA_FILE') && is_file(OPENSSL_CA_FILE)) {
+            $opts[CURLOPT_SSL_VERIFYPEER] = true;
+            $opts[CURLOPT_SSL_VERIFYHOST] = 2;
+            $opts[CURLOPT_CAINFO] = OPENSSL_CA_FILE;
+        }
+        // No CA bundle anywhere: fail closed rather than silently accept any
+        // certificate. The caller falls back to the offline assistant.
+        else {
+            $opts[CURLOPT_SSL_VERIFYPEER] = true;
+            $opts[CURLOPT_SSL_VERIFYHOST] = 2;
+        }
+        curl_setopt_array($ch, $opts);
+
+        $body = curl_exec($ch);
+        if ($body === false) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            throw new \RuntimeException('Gemini network error: ' . $err);
+        }
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+
+        if ($status === 429)  throw new \RuntimeException('Gemini rate limit reached');
+        if ($status === 400 || $status === 403) throw new \RuntimeException('Gemini rejected the request (check the API key and model name)');
+        if ($status >= 400) {
+            $j = json_decode((string) $body, true);
+            throw new \RuntimeException('Gemini error HTTP ' . $status . ': ' . (string) ($j['error']['message'] ?? 'unknown'));
+        }
+        return (string) $body;
+    }
+
+    /** Best available CA bundle for this host. */
+    private static function caBundle(): ?string
+    {
+        $candidates = [];
+        if (defined('OPENSSL_CA_FILE')) $candidates[] = OPENSSL_CA_FILE;
+        foreach ([
+            '/etc/ssl/certs/ca-certificates.crt',              // Hostinger/Debian
+            '/etc/pki/tls/certs/ca-bundle.crt',                // RHEL family
+            '/etc/ssl/ca-bundle.pem',                          // SUSE
+            '/usr/local/openssl/cert.pem',                     // Homebrew/macOS
+            '/etc/ssl/cert.pem',
+            'C:/xampp/php/extras/ssl/cacert.pem',              // local XAMPP
+            'C:/xampp/apache/bin/curl-ca-bundle.crt',
+        ] as $c) $candidates[] = $c;
+        foreach ($candidates as $c) {
+            if (is_string($c) && $c !== '' && is_file($c)) return $c;
+        }
+        return null;
+    }
+
+    /**
+     * Back-compat wrapper used by the offline path.
+     */
+    public static function fallback(string $msg, string $topic = ''): string
+    {
+        return ChatbotKnowledge::fallback($msg, $topic);
     }
 }

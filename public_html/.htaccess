@@ -1,14 +1,20 @@
 # =============================================================
 # EduPortal - public_html/.htaccess  (Apache 2.4 / Hostinger) — xtinger.com
 # =============================================================
-# Hostinger live environment — only applied when NOT on localhost (local XAMPP uses credentials.php defaults)
+# Hostinger live environment — only applied when NOT on localhost
+# (local XAMPP uses credentials.php defaults).
+#
+# SECURITY: secrets are NEVER stored here. This file is tracked in Git, so
+# anything written below is published. Set DB_USER, DB_PASS and
+# PAYREX_WEBHOOK_SECRET in hPanel instead:
+#   hPanel -> Advanced -> PHP Configuration, or Environment Variables
 <If "%{HTTP_HOST} != 'localhost' && %{HTTP_HOST} != '127.0.0.1' && %{HTTP_HOST} != '::1' && %{HTTP_HOST} !~ /^localhost:/ && %{HTTP_HOST} !~ /^127\.0\.0\.1:/">
     SetEnv APP_ENV production
     SetEnv DB_HOST localhost
     SetEnv DB_NAME u788443931_datamex
-    SetEnv DB_USER u788443931_eduportal
-    SetEnv DB_PASS Aguilar4438
-    SetEnv PAYREX_WEBHOOK_SECRET whsk_E2BmLPy5YnH3DZSu3xAYsPASRXUd462D
+    # SetEnv DB_USER     <set in hPanel - do not commit>
+    # SetEnv DB_PASS     <set in hPanel - do not commit>
+    # SetEnv PAYREX_WEBHOOK_SECRET <set in hPanel - do not commit>
 </If>
 # Optional: force BASE_URL if auto-detect fails (include https)
 # SetEnv BASE_URL https://skyblue-sardine-644746.hostingersite.com
